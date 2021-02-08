@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,7 +23,17 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/builder/dockerignore"
 	"github.com/docker/docker/client"
+	"github.com/opencontainers/go-digest"
 )
+
+func getContainerConfig(mansvc distribution.ManifestService, blobStore distribution.BlobStore, ctx context.Context, configDigest digest.Digest) ([]byte, error) {
+	mm, e := mansvc.Get(ctx, configDigest)
+	if e != nil {
+		return nil, e
+	}
+	dgst := mm.(*schema2.DeserializedManifest).Manifest.Config.Digest
+	return blobStore.Get(ctx, dgst)
+}
 
 func iterateServices(services map[string]interface{}, proj *compose.Project, fn compose.ServiceFunc) error {
 	return proj.WithServices(nil, func(s compose.ServiceConfig) error {
@@ -39,10 +50,18 @@ func iterateServices(services map[string]interface{}, proj *compose.Project, fn 
 	})
 }
 
-func PinServiceImages(cli *client.Client, ctx context.Context, services map[string]interface{}, proj *compose.Project) error {
+type ContainerConfig struct {
+	Platform string
+	Config   []byte
+}
+type ServiceConfigs map[string][]ContainerConfig
+
+func PinServiceImages(cli *client.Client, ctx context.Context, services map[string]interface{}, proj *compose.Project) (ServiceConfigs, error) {
 	regc := NewRegistryClient()
 
-	return iterateServices(services, proj, func(s compose.ServiceConfig) error {
+	configs := make(ServiceConfigs)
+
+	return configs, iterateServices(services, proj, func(s compose.ServiceConfig) error {
 		name := s.Name
 		obj := services[name]
 		svc := obj.(map[string]interface{})
@@ -80,23 +99,40 @@ func PinServiceImages(cli *client.Client, ctx context.Context, services map[stri
 			return fmt.Errorf("Unable to find image manifest(%s): %s", image, err)
 		}
 
+		blobStore := repo.Blobs(ctx)
+
 		// TODO - we should find the intersection of platforms so
 		// that we can denote the platforms this app can run on
 		pinned := reference.Domain(named) + "/" + reference.Path(named) + "@" + desc.Digest.String()
 
 		switch mani := man.(type) {
 		case *manifestlist.DeserializedManifestList:
+			containerConfigs := make([]ContainerConfig, len(mani.Manifests))
 			fmt.Printf("  | ")
 			for i, m := range mani.Manifests {
 				if i != 0 {
 					fmt.Printf(", ")
 				}
-				fmt.Printf(m.Platform.Architecture)
+				plat := m.Platform.Architecture
 				if m.Platform.Architecture == "arm" {
-					fmt.Printf(m.Platform.Variant)
+					plat += m.Platform.Variant
 				}
+				fmt.Printf(plat)
+				cfg, e := getContainerConfig(mansvc, blobStore, ctx, m.Descriptor.Digest)
+				if e != nil {
+					return fmt.Errorf("Unable to container config for %s: %v", plat, e)
+				}
+				containerConfigs[i] = ContainerConfig{Platform: plat, Config: cfg}
 			}
+			configs[name] = containerConfigs
 		case *schema2.DeserializedManifest:
+			cfg, e := getContainerConfig(mansvc, blobStore, ctx, desc.Digest)
+			if e != nil {
+				return fmt.Errorf("Unable to container config: %v", e)
+			}
+			configs[name] = []ContainerConfig{
+				{Config: cfg},
+			}
 			break
 		default:
 			return fmt.Errorf("Unexpected manifest: %v", mani)
@@ -145,13 +181,27 @@ func getIgnores(appDir string) []string {
 	return ignores
 }
 
-func createTgz(composeContent []byte, appDir string) ([]byte, error) {
+func createTgz(composeContent []byte, appDir string, specFiles map[string][]byte) ([]byte, error) {
 	var buf bytes.Buffer
 	gzw := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gzw)
 
 	ignores := getIgnores(appDir)
 	warned := make(map[string]bool)
+
+	for name, content := range specFiles {
+		header := tar.Header{
+			Name: ".specs/" + name,
+			Size: int64(len(content)),
+			Mode: 0755,
+		}
+		if err := tw.WriteHeader(&header); err != nil {
+			return nil, err
+		}
+		if _, err := tw.Write(content); err != nil {
+			return nil, err
+		}
+	}
 
 	err := filepath.Walk(appDir, func(file string, fi os.FileInfo, err error) error {
 		if err != nil {
@@ -229,13 +279,13 @@ func createTgz(composeContent []byte, appDir string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func CreateApp(ctx context.Context, config map[string]interface{}, target string, dryRun bool) (string, error) {
+func CreateApp(ctx context.Context, config map[string]interface{}, target string, specFiles map[string][]byte, dryRun bool) (string, error) {
 	pinned, err := yaml.Marshal(config)
 	if err != nil {
 		return "", err
 	}
 
-	buff, err := createTgz(pinned, "./")
+	buff, err := createTgz(pinned, "./", specFiles)
 	if err != nil {
 		return "", err
 	}
@@ -259,7 +309,9 @@ func CreateApp(ctx context.Context, config map[string]interface{}, target string
 		fmt.Println("Pinned compose:")
 		fmt.Println(string(pinned))
 		fmt.Println("Skipping publishing for dryrun")
-
+		if err := ioutil.WriteFile("compose-bundle.tgz", buff, 0755); err != nil {
+			return "", nil
+		}
 		return "", nil
 	}
 
