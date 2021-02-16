@@ -1,0 +1,16 @@
+version: "3.5"
+
+services:
+  test-common-options:
+    image: alpine:latest
+    read_only: true
+    command: /test.sh
+    working_dir: /opt
+    network_mode: host
+    hostname: foohost
+    domainname: capp.io
+    volumes:
+      - ./test-common-options.sh:/test.sh:ro
+    environment:
+      FOO: BAR
+    # TODO tty: true - tty's not yet supported in capp-run
