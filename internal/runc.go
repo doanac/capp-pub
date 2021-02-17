@@ -144,7 +144,6 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 		WithResources(c),
 		WithSysctls(c),
 		WithDevices(daemon, c),
-		WithUser(c),
 		WithRlimits(daemon, c),
 		WithNamespaces(daemon, c),
 		WithCapabilities(c),

@@ -14,3 +14,11 @@ services:
     environment:
       FOO: BAR
     # TODO tty: true - tty's not yet supported in capp-run
+
+  test-user:
+    image: alpine:latest
+    command: /test.sh
+    user: uucp:dialout
+    network_mode: host
+    volumes:
+      - ./test-user.sh:/test.sh:ro
