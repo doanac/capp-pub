@@ -138,6 +138,27 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 	if err := SetCommonOptions(&spec, s, containerConfig); err != nil {
 		return nil, err
 	}
+	/* TODO port these oci_linux.go functions where applicable:
+	opts = append(opts,
+		WithCgroups(daemon, c),
+		WithResources(c),
+		WithSysctls(c),
+		WithDevices(daemon, c),
+		WithUser(c),
+		WithRlimits(daemon, c),
+		WithNamespaces(daemon, c),
+		WithCapabilities(c),
+		WithSeccomp(daemon, c),
+		WithMounts(daemon, c),
+		WithLibnetwork(daemon, c),
+		WithApparmor(c),
+		WithSelinux(c),
+		WithOOMScore(&c.HostConfig.OomScoreAdj),
+	)
+	if c.NoNewPrivileges {
+		opts = append(opts, coci.WithNoNewPrivileges)
+	}
+	*/
 
 	for _, v := range s.Volumes {
 		spec.Mounts = append(spec.Mounts, specs.Mount{
