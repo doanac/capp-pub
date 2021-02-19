@@ -22,3 +22,12 @@ services:
     network_mode: host
     volumes:
       - ./test-user.sh:/test.sh:ro
+
+  test-sysctls:
+    image: alpine:latest
+    command: /test.sh
+    network_mode: host
+    sysctls:
+      net.core.somaxconn: 1234
+    volumes:
+      - ./test-sysctls.sh:/test.sh:ro

@@ -71,7 +71,7 @@ func env(s compose.ServiceConfig, c container.Config) []string {
 
 // Based on WithCommonOptions from
 //  https://raw.githubusercontent.com/moby/moby/6458f750e18ad808331e3e6a81c56cc9abe87b91/daemon/oci_linux.go
-func SetCommonOptions(spec *specs.Spec, svc compose.ServiceConfig, c container.Config) error {
+func setCommonOptions(spec *specs.Spec, svc compose.ServiceConfig, c container.Config) error {
 	spec.Root.Readonly = svc.ReadOnly
 
 	// TODO WithCommonOptions does setupLinkedContainers. The way capp-run does
@@ -124,6 +124,12 @@ func SetCommonOptions(spec *specs.Spec, svc compose.ServiceConfig, c container.C
 	return nil
 }
 
+func setSysctls(spec *specs.Spec, svc compose.ServiceConfig, c container.Config) {
+	for k, v := range svc.Sysctls {
+		spec.Linux.Sysctl[k] = v
+	}
+}
+
 func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, error) {
 	var fullconfig struct {
 		Config container.Config `json:"config"`
@@ -135,14 +141,14 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 
 	spec := oci.DefaultSpec()
 
-	if err := SetCommonOptions(&spec, s, containerConfig); err != nil {
+	if err := setCommonOptions(&spec, s, containerConfig); err != nil {
 		return nil, err
 	}
+	setSysctls(&spec, s, containerConfig)
 	/* TODO port these oci_linux.go functions where applicable:
 	opts = append(opts,
 		WithCgroups(daemon, c),
 		WithResources(c),
-		WithSysctls(c),
 		WithDevices(daemon, c),
 		WithRlimits(daemon, c),
 		WithNamespaces(daemon, c),
