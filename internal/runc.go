@@ -130,6 +130,11 @@ func setSysctls(spec *specs.Spec, svc compose.ServiceConfig, c container.Config)
 	}
 }
 
+func setOOMScore(spec *specs.Spec, svc compose.ServiceConfig, c container.Config) {
+	score := int(svc.OomScoreAdj)
+	spec.Process.OOMScoreAdj = &score
+}
+
 func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, error) {
 	var fullconfig struct {
 		Config container.Config `json:"config"`
@@ -145,6 +150,7 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 		return nil, err
 	}
 	setSysctls(&spec, s, containerConfig)
+	setOOMScore(&spec, s, containerConfig)
 	/* TODO port these oci_linux.go functions where applicable:
 	opts = append(opts,
 		WithCgroups(daemon, c),
@@ -158,7 +164,6 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 		WithLibnetwork(daemon, c),
 		WithApparmor(c),
 		WithSelinux(c),
-		WithOOMScore(&c.HostConfig.OomScoreAdj),
 	)
 	if c.NoNewPrivileges {
 		opts = append(opts, coci.WithNoNewPrivileges)

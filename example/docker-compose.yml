@@ -31,3 +31,11 @@ services:
       net.core.somaxconn: 1234
     volumes:
       - ./test-sysctls.sh:/test.sh:ro
+
+  test-oom_score_adj:
+    image: alpine:latest
+    command: /test.sh
+    network_mode: host
+    oom_score_adj: 1
+    volumes:
+      - ./test-oom.sh:/test.sh:ro
