@@ -39,3 +39,11 @@ services:
     oom_score_adj: 1
     volumes:
       - ./test-oom.sh:/test.sh:ro
+
+  test-capabilities:
+    image: alpine:latest
+    command: /test.sh
+    network_mode: host
+    privileged: true
+    volumes:
+      - ./test-caps.sh:/test.sh:ro

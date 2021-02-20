@@ -7,6 +7,7 @@ import (
 	compose "github.com/compose-spec/compose-go/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/oci"
+	"github.com/docker/docker/oci/caps"
 	"github.com/docker/docker/pkg/system"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -124,15 +125,40 @@ func setCommonOptions(spec *specs.Spec, svc compose.ServiceConfig, c container.C
 	return nil
 }
 
+// Based on WithSysctls from
+//  https://raw.githubusercontent.com/moby/moby/6458f750e18ad808331e3e6a81c56cc9abe87b91/daemon/oci_linux.go
 func setSysctls(spec *specs.Spec, svc compose.ServiceConfig, c container.Config) {
 	for k, v := range svc.Sysctls {
 		spec.Linux.Sysctl[k] = v
 	}
 }
 
+// Based on WithOOMScore from
+//  https://raw.githubusercontent.com/moby/moby/6458f750e18ad808331e3e6a81c56cc9abe87b91/daemon/oci_linux.go
 func setOOMScore(spec *specs.Spec, svc compose.ServiceConfig, c container.Config) {
 	score := int(svc.OomScoreAdj)
 	spec.Process.OOMScoreAdj = &score
+}
+
+// Based on WithCapabilities from
+//  https://raw.githubusercontent.com/moby/moby/6458f750e18ad808331e3e6a81c56cc9abe87b91/daemon/oci_linux.go
+func setCapabilities(spec *specs.Spec, svc compose.ServiceConfig, c container.Config) error {
+	// TODO - a privileged containter in docker produces:
+	// /proc/status | CapEff 000003ffffffffff
+	// This code does:
+	// /proc/status | CapEff 000001ffffffffff
+	// It seems it might be due to a newer version of oci library
+	capabilities, err := caps.TweakCapabilities(
+		oci.DefaultCapabilities(),
+		svc.CapAdd,
+		svc.CapDrop,
+		nil,
+		svc.Privileged,
+	)
+	if err != nil {
+		return err
+	}
+	return oci.SetCapabilities(spec, capabilities)
 }
 
 func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, error) {
@@ -150,6 +176,9 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 		return nil, err
 	}
 	setSysctls(&spec, s, containerConfig)
+	if err := setCapabilities(&spec, s, containerConfig); err != nil {
+		return nil, err
+	}
 	setOOMScore(&spec, s, containerConfig)
 	/* TODO port these oci_linux.go functions where applicable:
 	opts = append(opts,
@@ -158,7 +187,6 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 		WithDevices(daemon, c),
 		WithRlimits(daemon, c),
 		WithNamespaces(daemon, c),
-		WithCapabilities(c),
 		WithSeccomp(daemon, c),
 		WithMounts(daemon, c),
 		WithLibnetwork(daemon, c),
