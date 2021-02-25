@@ -47,3 +47,8 @@ services:
     privileged: true
     volumes:
       - ./test-caps.sh:/test.sh:ro
+
+  test-ports:
+    image: jmalloc/echo-server:0.1.0
+    ports:
+      - 8888:8080/tcp
