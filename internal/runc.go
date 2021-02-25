@@ -118,8 +118,6 @@ func setCommonOptions(spec *specs.Spec, svc compose.ServiceConfig, c container.C
 		spec.Linux.Sysctl["net.ipv4.ping_group_range"] = "0 2147483647"
 		// allow opening any port less than 1024 without CAP_NET_BIND_SERVICE
 		spec.Linux.Sysctl["net.ipv4.ip_unprivileged_port_start"] = "0"
-
-		return errors.New("TODO - capp-run does not support private networks")
 	}
 
 	return nil
