@@ -1,5 +1,8 @@
 version: "3.5"
 
+volumes:
+  capp-vol:
+
 services:
   test-common-options:
     image: alpine:latest
@@ -48,7 +51,18 @@ services:
     volumes:
       - ./test-caps.sh:/test.sh:ro
 
-  test-ports:
-    image: jmalloc/echo-server:0.1.0
-    ports:
-      - 8888:8080/tcp
+  test-volumes:
+    image: alpine:latest
+    command: /test.sh
+    volumes:
+      - ./test-vols.sh:/test.sh:ro
+      - ./rw-vol:/rw
+      - type: bind
+        source: ./bind-vol
+        target: /bind-vol
+        #TODO - this isn't working
+        # bind:
+        #  propagation: shared
+      - type: tmpfs
+        target: /tmpfs
+      - capp-vol:/capp-vol

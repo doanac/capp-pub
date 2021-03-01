@@ -159,6 +159,34 @@ func setCapabilities(spec *specs.Spec, svc compose.ServiceConfig, c container.Co
 	return oci.SetCapabilities(spec, capabilities)
 }
 
+func setMounts(spec *specs.Spec, svc compose.ServiceConfig) error {
+	// TODO lots of WithMounts is missing here like ipc mode shm-size
+	// and docker-compose volumes
+	// also missing volumes-from
+	for _, v := range svc.Volumes {
+		mode := "rw"
+		if v.ReadOnly {
+			mode = "ro"
+		}
+		options := []string{"rbind", "rprivate", mode}
+		if v.Bind != nil {
+			options[0] = v.Bind.Propagation
+		}
+		source := v.Source
+		if v.Type == "tmpfs" {
+			source = "tmpfs"
+			options = []string{"noexec", "nosuid", "nodev", "rprivate"}
+		}
+		spec.Mounts = append(spec.Mounts, specs.Mount{
+			Destination: v.Target,
+			Type:        v.Type,
+			Source:      source,
+			Options:     options,
+		})
+	}
+	return nil
+}
+
 func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, error) {
 	var fullconfig struct {
 		Config container.Config `json:"config"`
@@ -177,6 +205,7 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 	if err := setCapabilities(&spec, s, containerConfig); err != nil {
 		return nil, err
 	}
+	setMounts(&spec, s)
 	setOOMScore(&spec, s, containerConfig)
 	/* TODO port these oci_linux.go functions where applicable:
 	opts = append(opts,
@@ -186,7 +215,6 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 		WithRlimits(daemon, c),
 		WithNamespaces(daemon, c),
 		WithSeccomp(daemon, c),
-		WithMounts(daemon, c),
 		WithLibnetwork(daemon, c),
 		WithApparmor(c),
 		WithSelinux(c),
@@ -196,14 +224,6 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 	}
 	*/
 
-	for _, v := range s.Volumes {
-		spec.Mounts = append(spec.Mounts, specs.Mount{
-			Destination: v.Target,
-			Type:        v.Type,
-			Source:      v.Source,
-			Options:     []string{v.Type, "rprivate", "ro"},
-		})
-	}
 	return json.MarshalIndent(spec, "", "  ")
 }
 
