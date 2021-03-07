@@ -184,6 +184,16 @@ func setMounts(spec *specs.Spec, svc compose.ServiceConfig) error {
 			Options:     options,
 		})
 	}
+
+	for _, tfs := range svc.Tmpfs {
+		spec.Mounts = append(spec.Mounts, specs.Mount{
+			Destination: tfs,
+			Type:        "tmpfs",
+			Source:      "tmpfs",
+			Options:     []string{"nosuid", "noexec", "nodev"},
+		})
+	}
+
 	return nil
 }
 
