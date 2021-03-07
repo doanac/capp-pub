@@ -66,3 +66,14 @@ services:
       - type: tmpfs
         target: /tmpfs
       - capp-vol:/capp-vol
+
+  test-tmpfs:
+    image: alpine:latest
+    command: /test.sh
+    user: uucp:dialout
+    network_mode: host
+    tmpfs:
+      - /var/test
+    volumes:
+      - ./test-tmpfs.sh:/test.sh:ro
+    read_only: true
