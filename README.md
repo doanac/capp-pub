@@ -34,7 +34,7 @@ with capp-run/crun.
 
 $ make build
 $ cd example
-$ ../build/compose-publish --dryrun foo:bar
+$ ../bin/compose-publish --dryrun foo:bar
 ~~~
 
 That will create a tarball `compose-bundle.tgz`. This can be used by capp-run.
