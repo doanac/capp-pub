@@ -159,7 +159,7 @@ func setCapabilities(spec *specs.Spec, svc compose.ServiceConfig, c container.Co
 	return oci.SetCapabilities(spec, capabilities)
 }
 
-func setMounts(spec *specs.Spec, svc compose.ServiceConfig) error {
+func setMounts(spec *specs.Spec, svc compose.ServiceConfig) {
 	// TODO lots of WithMounts is missing here like ipc mode shm-size
 	// and docker-compose volumes
 	// also missing volumes-from
@@ -193,8 +193,6 @@ func setMounts(spec *specs.Spec, svc compose.ServiceConfig) error {
 			Options:     []string{"nosuid", "noexec", "nodev"},
 		})
 	}
-
-	return nil
 }
 
 func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, error) {
