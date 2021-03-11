@@ -27,4 +27,5 @@ require (
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
 	google.golang.org/grpc v1.32.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
+	github.com/seccomp/libseccomp-golang v0.9.1
 )

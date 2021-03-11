@@ -3,7 +3,7 @@ linter:=$(shell which golangci-lint 2>/dev/null || echo $(HOME)/go/bin/golangci-
 .PHONY: build
 build:
 	@mkdir -p bin/
-	go build -o bin/compose-publish main.go
+	go build -tags seccomp -o bin/compose-publish main.go
 
 build-alpine:
 	@mkdir -p bin/
@@ -12,7 +12,7 @@ build-alpine:
 		-e HOME=/tmp \
 		-w $(PWD) \
 		-u $(shell id -u):$(shell id -g) \
-		golang:alpine go build -o bin/compose-publish main.go
+		golang:alpine go build -tags seccomp -o bin/compose-publish main.go
 
 .PHONY: test
 test:

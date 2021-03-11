@@ -9,6 +9,7 @@ import (
 	"github.com/docker/docker/oci"
 	"github.com/docker/docker/oci/caps"
 	"github.com/docker/docker/pkg/system"
+	"github.com/docker/docker/profiles/seccomp"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
@@ -222,7 +223,6 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 		WithDevices(daemon, c),
 		WithRlimits(daemon, c),
 		WithNamespaces(daemon, c),
-		WithSeccomp(daemon, c),
 		WithLibnetwork(daemon, c),
 		WithApparmor(c),
 		WithSelinux(c),
@@ -237,6 +237,11 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 
 func CreateSpecs(proj *compose.Project, configs ServiceConfigs) (map[string][]byte, error) {
 	specs := make(map[string][]byte)
+	bytes, err := json.MarshalIndent(seccomp.DefaultProfile(), "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	specs[".default-secomp.json"] = bytes
 	return specs, proj.WithServices(nil, func(s compose.ServiceConfig) error {
 		for _, containerConfig := range configs[s.Name] {
 			fname := s.Name + "/"
