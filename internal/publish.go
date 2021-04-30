@@ -181,7 +181,7 @@ func getIgnores(appDir string) []string {
 	return ignores
 }
 
-func createTgz(composeContent []byte, appDir string, specFiles map[string][]byte) ([]byte, error) {
+func createTgz(composeContent []byte, appDir string, specFiles map[string][]byte, unitFiles map[string][]byte) ([]byte, error) {
 	var buf bytes.Buffer
 	gzw := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gzw)
@@ -192,6 +192,20 @@ func createTgz(composeContent []byte, appDir string, specFiles map[string][]byte
 	for name, content := range specFiles {
 		header := tar.Header{
 			Name: ".specs/" + name,
+			Size: int64(len(content)),
+			Mode: 0755,
+		}
+		if err := tw.WriteHeader(&header); err != nil {
+			return nil, err
+		}
+		if _, err := tw.Write(content); err != nil {
+			return nil, err
+		}
+	}
+
+	for name, content := range unitFiles {
+		header := tar.Header{
+			Name: ".systemd/" + name,
 			Size: int64(len(content)),
 			Mode: 0755,
 		}
@@ -279,13 +293,13 @@ func createTgz(composeContent []byte, appDir string, specFiles map[string][]byte
 	return buf.Bytes(), nil
 }
 
-func CreateApp(ctx context.Context, config map[string]interface{}, target string, specFiles map[string][]byte, dryRun bool) (string, error) {
+func CreateApp(ctx context.Context, config map[string]interface{}, target string, specFiles map[string][]byte, unitFiles map[string][]byte, dryRun bool) (string, error) {
 	pinned, err := yaml.Marshal(config)
 	if err != nil {
 		return "", err
 	}
 
-	buff, err := createTgz(pinned, "./", specFiles)
+	buff, err := createTgz(pinned, "./", specFiles, unitFiles)
 	if err != nil {
 		return "", err
 	}

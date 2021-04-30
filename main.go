@@ -115,6 +115,12 @@ func doPublish(file, target, digestFile string, dryRun bool) error {
 		return err
 	}
 
+	fmt.Println("= Creating systemd units...")
+	unitFiles, err := internal.CreateServices(proj)
+	if err != nil {
+		return err
+	}
+
 	fmt.Println("= Pinning service images...")
 	svcs, ok := config["services"]
 	if !ok {
@@ -137,7 +143,7 @@ func doPublish(file, target, digestFile string, dryRun bool) error {
 	}
 
 	fmt.Println("= Publishing app...")
-	dgst, err := internal.CreateApp(ctx, config, target, specFiles, dryRun)
+	dgst, err := internal.CreateApp(ctx, config, target, specFiles, unitFiles, dryRun)
 	if err != nil {
 		return err
 	}
