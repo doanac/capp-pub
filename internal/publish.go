@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -217,6 +218,18 @@ func createTgz(composeContent []byte, appDir string, specFiles map[string][]byte
 		}
 	}
 
+	header := tar.Header{
+		Name: "docker-compose.json",
+		Size: int64(len(composeContent)),
+		Mode: 0755,
+	}
+	if err := tw.WriteHeader(&header); err != nil {
+		return nil, err
+	}
+	if _, err := tw.Write(composeContent); err != nil {
+		return nil, fmt.Errorf("Unable to add docker-compose.json to archive: %s", err)
+	}
+
 	err := filepath.Walk(appDir, func(file string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("Tar: Can't stat file %s to tar: %w", appDir, err)
@@ -230,7 +243,7 @@ func createTgz(composeContent []byte, appDir string, specFiles map[string][]byte
 			return err
 		}
 		if fi.Name() == "docker-compose.yml" {
-			header.Size = int64(len(composeContent))
+			return nil
 		}
 
 		// Handle subdirectories
@@ -265,11 +278,7 @@ func createTgz(composeContent []byte, appDir string, specFiles map[string][]byte
 			return err
 		}
 
-		if fi.Name() == "docker-compose.yml" {
-			if _, err := tw.Write(composeContent); err != nil {
-				return fmt.Errorf("Unable to add docker-compose.yml to archive: %s", err)
-			}
-		} else if fi.Mode().IsRegular() {
+		if fi.Mode().IsRegular() {
 			f, err := os.Open(file)
 			if err != nil {
 				f.Close()
@@ -294,7 +303,7 @@ func createTgz(composeContent []byte, appDir string, specFiles map[string][]byte
 }
 
 func CreateApp(ctx context.Context, config map[string]interface{}, target string, specFiles map[string][]byte, unitFiles map[string][]byte, dryRun bool) (string, error) {
-	pinned, err := yaml.Marshal(config)
+	pinned, err := json.Marshal(config)
 	if err != nil {
 		return "", err
 	}
