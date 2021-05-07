@@ -137,11 +137,6 @@ func doPublish(file, target, digestFile string, dryRun bool) error {
 		return err
 	}
 
-	fmt.Println("= Hashing services")
-	if err := internal.PinServiceConfigs(cli, ctx, svcs.(map[string]interface{}), proj); err != nil {
-		return err
-	}
-
 	fmt.Println("= Publishing app...")
 	dgst, err := internal.CreateApp(ctx, config, target, specFiles, unitFiles, dryRun)
 	if err != nil {

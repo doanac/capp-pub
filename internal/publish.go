@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,8 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"gopkg.in/yaml.v2"
 
 	compose "github.com/compose-spec/compose-go/types"
 	"github.com/docker/distribution"
@@ -65,7 +62,7 @@ func PinServiceImages(cli *client.Client, ctx context.Context, services map[stri
 	return configs, iterateServices(services, proj, func(s compose.ServiceConfig) error {
 		name := s.Name
 		obj := services[name]
-		svc := obj.(map[string]interface{})
+		svc, ok := obj.(map[string]interface{})
 
 		image := s.Image
 		if len(image) == 0 {
@@ -141,30 +138,6 @@ func PinServiceImages(cli *client.Client, ctx context.Context, services map[stri
 
 		fmt.Println("\n  |-> ", pinned)
 		svc["image"] = pinned
-		return nil
-	})
-}
-
-func PinServiceConfigs(cli *client.Client, ctx context.Context, services map[string]interface{}, proj *compose.Project) error {
-	return iterateServices(services, proj, func(s compose.ServiceConfig) error {
-		obj := services[s.Name]
-		svc := obj.(map[string]interface{})
-
-		marshalled, err := yaml.Marshal(s)
-		if err != nil {
-			return err
-		}
-
-		labels, ok := svc["labels"]
-		if !ok {
-			labels = make(map[string]interface{})
-			svc["labels"] = labels
-		}
-		h := sha256.New()
-		if _, err := h.Write(marshalled); err != nil {
-			return fmt.Errorf("Unexpected error hashing service config for %s", s.Name)
-		}
-		labels.(map[string]interface{})["io.compose-spec.config-hash"] = fmt.Sprintf("%x", h.Sum(nil))
 		return nil
 	})
 }
