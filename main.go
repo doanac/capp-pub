@@ -11,7 +11,6 @@ import (
 
 	"github.com/compose-spec/compose-go/loader"
 	compose "github.com/compose-spec/compose-go/types"
-	"github.com/docker/docker/client"
 	commandLine "github.com/urfave/cli/v2"
 
 	"github.com/foundriesio/compose-publish/internal"
@@ -69,15 +68,6 @@ func main() {
 	}
 }
 
-func getClient() (*client.Client, error) {
-	cli, err := client.NewClientWithOpts(client.FromEnv)
-	if err != nil {
-		return nil, err
-	}
-	cli.NegotiateAPIVersion(context.Background())
-	return cli, nil
-}
-
 func loadProj(file string, config map[string]interface{}) (*compose.Project, error) {
 	env := make(map[string]string)
 	for _, val := range os.Environ() {
@@ -103,10 +93,6 @@ func doPublish(file, target, digestFile string, dryRun bool) error {
 	if err != nil {
 		return err
 	}
-	cli, err := getClient()
-	if err != nil {
-		return err
-	}
 
 	ctx := context.Background()
 
@@ -126,7 +112,7 @@ func doPublish(file, target, digestFile string, dryRun bool) error {
 	if !ok {
 		return errors.New("Unable to find 'services' section of compose file")
 	}
-	configs, err := internal.PinServiceImages(cli, ctx, svcs.(map[string]interface{}), proj)
+	configs, err := internal.PinServiceImages(ctx, svcs.(map[string]interface{}), proj)
 	if err != nil {
 		return err
 	}

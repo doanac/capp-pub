@@ -20,7 +20,6 @@ import (
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/builder/dockerignore"
-	"github.com/docker/docker/client"
 	"github.com/opencontainers/go-digest"
 )
 
@@ -54,7 +53,7 @@ type ContainerConfig struct {
 }
 type ServiceConfigs map[string][]ContainerConfig
 
-func PinServiceImages(cli *client.Client, ctx context.Context, services map[string]interface{}, proj *compose.Project) (ServiceConfigs, error) {
+func PinServiceImages(ctx context.Context, services map[string]interface{}, proj *compose.Project) (ServiceConfigs, error) {
 	regc := NewRegistryClient()
 
 	configs := make(ServiceConfigs)
