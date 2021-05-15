@@ -49,6 +49,7 @@ func iterateServices(services map[string]interface{}, proj *compose.Project, fn 
 
 type ContainerConfig struct {
 	Platform string
+	Digest   digest.Digest
 	Config   []byte
 }
 type ServiceConfigs map[string][]ContainerConfig
@@ -119,7 +120,7 @@ func PinServiceImages(ctx context.Context, services map[string]interface{}, proj
 				if e != nil {
 					return fmt.Errorf("Unable to container config for %s: %v", plat, e)
 				}
-				containerConfigs[i] = ContainerConfig{Platform: plat, Config: cfg}
+				containerConfigs[i] = ContainerConfig{Platform: plat, Config: cfg, Digest: m.Digest}
 			}
 			configs[name] = containerConfigs
 		case *schema2.DeserializedManifest:
@@ -128,7 +129,7 @@ func PinServiceImages(ctx context.Context, services map[string]interface{}, proj
 				return fmt.Errorf("Unable to container config: %v", e)
 			}
 			configs[name] = []ContainerConfig{
-				{Config: cfg},
+				{Config: cfg, Digest: desc.Digest},
 			}
 			break
 		default:
