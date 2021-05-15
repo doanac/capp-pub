@@ -155,13 +155,27 @@ func getIgnores(appDir string) []string {
 	return ignores
 }
 
-func createTgz(composeContent []byte, appDir string, specFiles map[string][]byte, unitFiles map[string][]byte) ([]byte, error) {
+func createTgz(composeContent []byte, appDir string, ostreeShas, specFiles map[string][]byte, unitFiles map[string][]byte) ([]byte, error) {
 	var buf bytes.Buffer
 	gzw := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gzw)
 
 	ignores := getIgnores(appDir)
 	warned := make(map[string]bool)
+	
+	for name, content := range ostreeShas {
+		header := tar.Header{
+			Name: ".ostree/" + name,
+			Size: int64(len(content)),
+			Mode: 0755,
+		}
+		if err := tw.WriteHeader(&header); err != nil {
+			return nil, err
+		}
+		if _, err := tw.Write(content); err != nil {
+			return nil, err
+		}
+	}
 
 	for name, content := range specFiles {
 		header := tar.Header{
@@ -275,13 +289,13 @@ func createTgz(composeContent []byte, appDir string, specFiles map[string][]byte
 	return buf.Bytes(), nil
 }
 
-func CreateApp(ctx context.Context, config map[string]interface{}, target string, specFiles map[string][]byte, unitFiles map[string][]byte, dryRun bool) (string, error) {
+func CreateApp(ctx context.Context, config map[string]interface{}, target string, ostreeShas, specFiles map[string][]byte, unitFiles map[string][]byte, dryRun bool) (string, error) {
 	pinned, err := json.Marshal(config)
 	if err != nil {
 		return "", err
 	}
 
-	buff, err := createTgz(pinned, "./", specFiles, unitFiles)
+	buff, err := createTgz(pinned, "./", ostreeShas, specFiles, unitFiles)
 	if err != nil {
 		return "", err
 	}

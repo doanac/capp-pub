@@ -26,6 +26,7 @@ func main() {
 	var file string
 	var digestFile string
 	var dryRun bool
+	var ostreeRepo string
 
 	fmt.Print(banner)
 	app := &commandLine.App{
@@ -52,13 +53,19 @@ func main() {
 				Usage:       "Show what would be done, but don't actually publish",
 				Destination: &dryRun,
 			},
+			&commandLine.StringFlag{
+				Name:        "ostree-repo",
+				Required:    false,
+				Usage:       "Save container images into ostree repo",
+				Destination: &ostreeRepo,
+			},
 		},
 		Action: func(c *commandLine.Context) error {
 			target := c.Args().Get(0)
 			if len(target) == 0 {
 				return errors.New("Missing required argument: TARGET:[TAG]")
 			}
-			return doPublish(file, target, digestFile, dryRun)
+			return doPublish(file, target, digestFile, ostreeRepo, dryRun)
 		},
 	}
 
@@ -84,7 +91,7 @@ func loadProj(file string, config map[string]interface{}) (*compose.Project, err
 	})
 }
 
-func doPublish(file, target, digestFile string, dryRun bool) error {
+func doPublish(file, target, digestFile, ostreeRepo string, dryRun bool) error {
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
 		return err
@@ -117,6 +124,14 @@ func doPublish(file, target, digestFile string, dryRun bool) error {
 		return err
 	}
 
+	var ostreeShas map[string][]byte
+	if len(ostreeRepo) > 0 {
+		ostreeShas, err = internal.OstreeCommit(ctx, ostreeRepo, proj, configs)
+		if err != nil {
+			return err
+		}
+	}
+
 	fmt.Println("= Creating runc specs...")
 	specFiles, err := internal.CreateSpecs(proj, configs)
 	if err != nil {
@@ -124,7 +139,7 @@ func doPublish(file, target, digestFile string, dryRun bool) error {
 	}
 
 	fmt.Println("= Publishing app...")
-	dgst, err := internal.CreateApp(ctx, config, target, specFiles, unitFiles, dryRun)
+	dgst, err := internal.CreateApp(ctx, config, target, ostreeShas, specFiles, unitFiles, dryRun)
 	if err != nil {
 		return err
 	}

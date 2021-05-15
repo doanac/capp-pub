@@ -20,12 +20,13 @@ require (
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v1.0.0-rc90 // indirect
 	github.com/opencontainers/runtime-spec v1.0.2
+	github.com/ostreedev/ostree-go v0.0.0-20210511152353-2ca91aaf921c // indirect
 	github.com/pkg/errors v0.9.1
+	github.com/seccomp/libseccomp-golang v0.9.1
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/urfave/cli/v2 v2.1.1
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
 	google.golang.org/grpc v1.32.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	github.com/seccomp/libseccomp-golang v0.9.1
 )
