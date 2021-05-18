@@ -2,6 +2,7 @@ package internal
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	compose "github.com/compose-spec/compose-go/types"
@@ -102,6 +103,7 @@ func setCommonOptions(spec *specs.Spec, svc compose.ServiceConfig, c container.C
 
 	if svc.Tty {
 		spec.Process.Terminal = true
+		//TODO systemd should handle this now
 		return errors.New("TODO - capp-run does not support tty:True")
 	}
 
@@ -235,7 +237,175 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 	return json.MarshalIndent(spec, "", "  ")
 }
 
+func isSupported(proj *compose.Project) error {
+	return proj.WithServices(nil, func(s compose.ServiceConfig) error {
+		if len(s.BlkioConfig) > 0 {
+			return fmt.Errorf("Unsupported blkio_config: %s", s.BlkioConfig)
+		}
+		if s.CPUCount > 0 {
+			return fmt.Errorf("Unsupported attribute 'cpu_count': %d", s.CPUCount)
+		}
+		if s.CPUPercent > 0 {
+			return fmt.Errorf("Unsupported attribute 'cpu_percent': %f", s.CPUPercent)
+		}
+		if s.CPUShares > 0 {
+			return fmt.Errorf("Unsupported attribute 'cpu_shares': %d", s.CPUShares)
+		}
+		if s.CPUPeriod > 0 {
+			return fmt.Errorf("Unsupported attribute 'cpu_period': %d", s.CPUPeriod)
+		}
+		if s.CPUQuota > 0 {
+			return fmt.Errorf("Unsupported attribute 'cpu_quota': %d", s.CPUQuota)
+		}
+		if s.CPURTRuntime > 0 {
+			return fmt.Errorf("Unsupported attribute 'cpu_rt_runtime': %d", s.CPURTRuntime)
+		}
+		if s.CPURTPeriod > 0 {
+			return fmt.Errorf("Unsupported attribute 'cpu_rt_period': %d", s.CPURTPeriod)
+		}
+		if s.CPUS > 0 {
+			return fmt.Errorf("Unsupported/deprecated attribute 'cpus': %f", s.CPUS)
+		}
+		if len(s.CPUSet) > 0 {
+			return fmt.Errorf("Unsupported attribute 'cpu_set': %s", s.CPUSet)
+		}
+		if s.Build != nil {
+			return fmt.Errorf("Unsupported attribute 'build'")
+		}
+		if len(s.CgroupParent) > 0 {
+			return fmt.Errorf("Unsupported attribute 'cgroup_parent': %s", s.CgroupParent)
+		}
+		if s.Configs != nil {
+			return fmt.Errorf("Unsupported attribute 'configs'")
+		}
+		if len(s.ContainerName) > 0 {
+			return fmt.Errorf("Unsupported attribute 'container_name': %s", s.ContainerName)
+		}
+		if s.CredentialSpec != nil {
+			return fmt.Errorf("Unsupported attribute 'credential_spec'")
+		}
+		if s.DependsOn != nil {
+			return fmt.Errorf("Unsupported attribute 'depends_on'")
+		}
+		if s.Deploy != nil {
+			return fmt.Errorf("Unsupported swarm attribute 'deploy'")
+		}
+		if s.Devices != nil {
+			return fmt.Errorf("Unsupported attribute 'devices'")
+		}
+		if s.DNS != nil {
+			return fmt.Errorf("Unsupported attribute 'dns'")
+		}
+		if s.DNSOpts != nil {
+			return fmt.Errorf("Unsupported attribute 'dns_opts'")
+		}
+		if s.DNSSearch != nil {
+			return fmt.Errorf("Unsupported attribute 'dns_search'")
+		}
+		if s.EnvFile != nil {
+			return fmt.Errorf("Unsupported attribute 'env_file'")
+		}
+		if s.Expose != nil {
+			return fmt.Errorf("Unsupported attribute 'expose' (not required)")
+		}
+		if s.Extends != nil {
+			return fmt.Errorf("Unsupported attribute 'extends'")
+		}
+		if s.ExternalLinks != nil {
+			return fmt.Errorf("Unsupported attribute 'external_links'")
+		}
+		if s.ExtraHosts != nil {
+			return fmt.Errorf("Unsupported attribute 'extra_hosts'")
+		}
+		if s.GroupAdd != nil {
+			return fmt.Errorf("Unsupported attribute 'group_add'")
+		}
+		if s.HealthCheck != nil {
+			return fmt.Errorf("Unsupported attribute 'healthcheck'")
+		}
+		if s.Init != nil && *s.Init {
+			return fmt.Errorf("Unsupported attribute 'init'")
+		}
+		if len(s.Ipc) > 0 {
+			return fmt.Errorf("Unsupported attribute 'ipc': %s", s.Ipc)
+		}
+		if len(s.Isolation) > 0 {
+			return fmt.Errorf("Unsupported attribute 'isolation': %s", s.Isolation)
+		}
+		if s.Labels != nil {
+			return fmt.Errorf("Unsupported attribute 'labels'")
+		}
+		if s.Links != nil {
+			return fmt.Errorf("Unsupported attribute 'links'")
+		}
+		if s.Logging != nil {
+			return fmt.Errorf("Unsupported attribute 'logging'")
+		}
+		if len(s.MacAddress) > 0 {
+			return fmt.Errorf("Unsupported attribute 'mac_address': %s", s.MacAddress)
+		}
+		if s.MemLimit > 0 {
+			return fmt.Errorf("Unsupported/deprecated attribute 'mem_limit': %d", s.MemLimit)
+		}
+		if s.MemReservation > 0 {
+			return fmt.Errorf("Unsupported/deprecated attribute 'mem_reservation': %d", s.MemReservation)
+		}
+		if s.MemSwappiness > 0 {
+			return fmt.Errorf("Unsupported attribute 'mem_swapiness': %d", s.MemSwappiness)
+		}
+		if s.MemSwapLimit > 0 {
+			return fmt.Errorf("Unsupported attribute 'memswap_limit': %d", s.MemSwapLimit)
+		}
+		if len(s.Pid) > 0 {
+			return fmt.Errorf("Unsupported attribute 'pid': %s", s.Isolation)
+		}
+		if s.PidLimit > 0 {
+			return fmt.Errorf("Unsupported attribute 'pids_limit': %d", s.PidLimit)
+		}
+		if len(s.Platform) > 0 {
+			return fmt.Errorf("Unsupported attribute 'platform': %s", s.Platform)
+		}
+		if s.ReadOnly {
+			return fmt.Errorf("Unsupported attribute 'readonly: true'")
+		}
+		if len(s.Runtime) > 0 {
+			return fmt.Errorf("Unsupported attribute 'runtime': %s", s.Runtime)
+		}
+		if s.Scale > 0 {
+			return fmt.Errorf("Unsupported swarm attribute 'scale': %d", s.Scale)
+		}
+		if s.Secrets != nil {
+			return fmt.Errorf("Unsupported attribute 'secrets'")
+		}
+		if len(s.ShmSize) > 0 {
+			return fmt.Errorf("Unsupported attribute 'shm_size': %s", s.ShmSize)
+		}
+		if s.StdinOpen {
+			return fmt.Errorf("Unsupported attribute 'stdin_open: true'")
+		}
+		if s.StopGracePeriod != nil {
+			return fmt.Errorf("Unsupported attribute 'stop_grace_period'")
+		}
+		if len(s.StopSignal) > 0 {
+			return fmt.Errorf("Unsupported attribute 'stop_signal': %s", s.StopSignal)
+		}
+		if s.Ulimits != nil {
+			return fmt.Errorf("Unsupported attribute 'ulimits'")
+		}
+		if len(s.UserNSMode) > 0 {
+			return fmt.Errorf("Unsupported attribute 'userns_mode': %s", s.UserNSMode)
+		}
+		if s.VolumesFrom != nil {
+			return fmt.Errorf("Unsupported attribute 'volumes_from'")
+		}
+		return nil
+	})
+}
+
 func CreateSpecs(proj *compose.Project, configs ServiceConfigs) (map[string][]byte, error) {
+	if err := isSupported(proj); err != nil {
+		return nil, err
+	}
 	specs := make(map[string][]byte)
 	bytes, err := json.MarshalIndent(seccomp.DefaultProfile(), "", "  ")
 	if err != nil {
