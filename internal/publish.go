@@ -162,7 +162,7 @@ func createTgz(composeContent []byte, appDir string, ostreeShas, specFiles map[s
 
 	ignores := getIgnores(appDir)
 	warned := make(map[string]bool)
-	
+
 	for name, content := range ostreeShas {
 		header := tar.Header{
 			Name: ".ostree/" + name,
@@ -320,7 +320,7 @@ func CreateApp(ctx context.Context, config map[string]interface{}, target string
 		fmt.Println(string(pinned))
 		fmt.Println("Skipping publishing for dryrun")
 		if err := ioutil.WriteFile("compose-bundle.tgz", buff, 0755); err != nil {
-			return "", nil
+			return "", err
 		}
 		return "", nil
 	}
