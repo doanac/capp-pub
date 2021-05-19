@@ -314,9 +314,6 @@ func isSupported(proj *compose.Project) error {
 		if s.ExternalLinks != nil {
 			return fmt.Errorf("Unsupported attribute 'external_links'")
 		}
-		if s.ExtraHosts != nil {
-			return fmt.Errorf("Unsupported attribute 'extra_hosts'")
-		}
 		if s.GroupAdd != nil {
 			return fmt.Errorf("Unsupported attribute 'group_add'")
 		}
@@ -364,9 +361,6 @@ func isSupported(proj *compose.Project) error {
 		}
 		if len(s.Platform) > 0 {
 			return fmt.Errorf("Unsupported attribute 'platform': %s", s.Platform)
-		}
-		if s.ReadOnly {
-			return fmt.Errorf("Unsupported attribute 'readonly: true'")
 		}
 		if len(s.Runtime) > 0 {
 			return fmt.Errorf("Unsupported attribute 'runtime': %s", s.Runtime)

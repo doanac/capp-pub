@@ -86,3 +86,12 @@ services:
       - seccomp:./no-chmod.json
     volumes:
       - ./test-seccomp.sh:/test.sh:ro
+  
+  test-extra_hosts:
+    image: alpine:latest
+    command: /test.sh
+    extra_hosts: 
+      - foo:1.2.3.4
+      - bar:4.3.2.1
+    volumes:
+      - ./test-extra-hosts.sh:/test.sh:ro
