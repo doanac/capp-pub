@@ -162,6 +162,17 @@ func setCapabilities(spec *specs.Spec, svc compose.ServiceConfig, c container.Co
 	return oci.SetCapabilities(spec, capabilities)
 }
 
+func setLabels(spec *specs.Spec, svc compose.ServiceConfig, c container.Config) {
+	spec.Annotations = c.Labels
+	if spec.Annotations == nil {
+		spec.Annotations = svc.Labels
+	} else {
+		for k, v := range svc.Labels {
+			spec.Annotations[k] = v
+		}
+	}
+}
+
 func setMounts(spec *specs.Spec, svc compose.ServiceConfig) {
 	// TODO lots of WithMounts is missing here like ipc mode shm-size
 	// and docker-compose volumes
@@ -209,6 +220,7 @@ func RuncSpec(s compose.ServiceConfig, containerConfigBytes []byte) ([]byte, err
 
 	spec := oci.DefaultSpec()
 
+	setLabels(&spec, s, containerConfig)
 	if err := setCommonOptions(&spec, s, containerConfig); err != nil {
 		return nil, err
 	}
@@ -328,9 +340,6 @@ func isSupported(proj *compose.Project) error {
 		}
 		if len(s.Isolation) > 0 {
 			return fmt.Errorf("Unsupported attribute 'isolation': %s", s.Isolation)
-		}
-		if s.Labels != nil {
-			return fmt.Errorf("Unsupported attribute 'labels'")
 		}
 		if s.Links != nil {
 			return fmt.Errorf("Unsupported attribute 'links'")
