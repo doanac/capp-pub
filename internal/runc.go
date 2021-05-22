@@ -305,15 +305,6 @@ func isSupported(proj *compose.Project) error {
 		if s.Devices != nil {
 			return fmt.Errorf("Unsupported attribute 'devices'")
 		}
-		if s.DNS != nil {
-			return fmt.Errorf("Unsupported attribute 'dns'")
-		}
-		if s.DNSOpts != nil {
-			return fmt.Errorf("Unsupported attribute 'dns_opts'")
-		}
-		if s.DNSSearch != nil {
-			return fmt.Errorf("Unsupported attribute 'dns_search'")
-		}
 		if s.EnvFile != nil {
 			return fmt.Errorf("Unsupported attribute 'env_file'")
 		}
